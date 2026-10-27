@@ -682,6 +682,15 @@ def search(
         or [[]]
     )[0]
 
+    # 적재 시 build_chunk_id()로 만든 레코드 ID
+    # (include에 없어도 query 결과에 항상 포함됨)
+    ids = (
+        raw_results.get(
+            "ids"
+        )
+        or [[]]
+    )[0]
+
     logger.info(
         "[SEARCH] ChromaDB 후보 반환:"
         " %d개",
@@ -693,10 +702,12 @@ def search(
     ] = []
 
     for (
+        chunk_id,
         document,
         metadata,
         distance,
     ) in zip(
+        ids,
         documents,
         metadatas,
         distances,
@@ -738,6 +749,7 @@ def search(
 
         candidates.append(
             {
+                "chunk_id": str(chunk_id),
                 "text": document,
                 "page": int(
                     metadata.get(
@@ -905,16 +917,15 @@ def search(
         dict[str, Any]
     ] = []
 
+    # 청크 ID 기준 중복 제거
+    # (doc_id, article, page) 기준이면 article이 빈 청크는
+    # 같은 페이지에서 1개만 남아 정답 청크가 빠지는 문제가 있었음
     seen_sources: set[
-        tuple[str, str, int]
+        str
     ] = set()
 
     for candidate in score_passed:
-        source_key = (
-            candidate["doc_id"],
-            candidate["article"],
-            candidate["page"],
-        )
+        source_key = candidate["chunk_id"]
 
         if source_key in seen_sources:
             logger.debug(
