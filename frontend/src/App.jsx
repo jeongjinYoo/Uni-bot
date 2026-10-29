@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import {
   FileText,
   GraduationCap,
-  Lightbulb,
   Search as SearchIcon,
 } from 'lucide-react'
 
@@ -33,6 +32,9 @@ function App() {
   const [pdfHighlightText, setPdfHighlightText] = useState('')
 
   const lastStudentSchoolIdRef = useRef(null)
+  const pdfViewerRef = useRef(null)
+  const splitRef = useRef(null)
+  const [chatPercent, setChatPercent] = useState(50)
 
   const isStudentView = role !== 'admin'
   const currentSchool = schools.find((school) => school.id === currentSchoolId)
@@ -129,6 +131,33 @@ function App() {
     setCurrentSchoolId(restoredId)
   }
 
+  const handleSplitPointerDown = (event) => {
+    event.preventDefault()
+    const root = splitRef.current
+
+    if (!root) {
+      return
+    }
+
+    const onMove = (moveEvent) => {
+      const rect = root.getBoundingClientRect()
+      const next = ((moveEvent.clientX - rect.left) / rect.width) * 100
+      setChatPercent(Math.min(72, Math.max(28, next)))
+    }
+
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+  }
+
   return (
     <div className="flex h-screen flex-col overflow-hidden">
       {isChatStarted ? (
@@ -149,15 +178,8 @@ function App() {
             </div>
 
             <div className="pointer-events-none absolute left-1/2 hidden -translate-x-1/2 px-4 lg:block">
-              <span className="flex items-center gap-2 whitespace-nowrap rounded-full bg-white/15 px-4 py-1.5 text-xs font-medium backdrop-blur-sm">
-                <Lightbulb
-                  size={14}
-                  {...LINE_ICON}
-                  className="shrink-0 text-amber-200"
-                  aria-hidden
-                />
-
-                <span>Self-RAG 기반 학사 규정 AI 검색 플랫폼</span>
+              <span className="whitespace-nowrap text-xs font-medium">
+                Self-RAG 기반 학사 규정 AI 검색 플랫폼
               </span>
             </div>
 
@@ -177,6 +199,7 @@ function App() {
                   <button
                     type="button"
                     title="PDF 뷰어에서 검색"
+                    onClick={() => pdfViewerRef.current?.openSearch()}
                     className="inline-flex items-center gap-1.5 rounded-md bg-white/20 px-3 py-1.5 text-sm transition hover:bg-white/30"
                   >
                     <SearchIcon size={16} {...LINE_ICON} />
@@ -207,8 +230,14 @@ function App() {
             {role === 'admin' ? (
               <AdminDashboard />
             ) : (
-              <div className="flex h-full min-h-0 w-full flex-1 flex-row overflow-hidden">
-                <div className="flex min-h-0 w-1/2 flex-col overflow-hidden border-r border-slate-200">
+              <div
+                ref={splitRef}
+                className="flex h-full min-h-0 w-full flex-1 flex-row overflow-hidden"
+              >
+                <div
+                  className="flex min-h-0 min-w-0 flex-col overflow-hidden"
+                  style={{ width: `${chatPercent}%` }}
+                >
                   <ChatScreen
                     onSourceClick={handleSourceClick}
                     currentSchoolId={currentSchoolId}
@@ -216,8 +245,32 @@ function App() {
                   />
                 </div>
 
-                <div className="flex min-h-0 w-1/2 flex-col overflow-hidden">
+                <div
+                  role="separator"
+                  aria-orientation="vertical"
+                  aria-label="채팅과 PDF 너비 조절"
+                  aria-valuemin={28}
+                  aria-valuemax={72}
+                  aria-valuenow={Math.round(chatPercent)}
+                  tabIndex={0}
+                  onPointerDown={handleSplitPointerDown}
+                  onKeyDown={(event) => {
+                    if (event.key === 'ArrowLeft') {
+                      event.preventDefault()
+                      setChatPercent((current) => Math.max(28, current - 2))
+                    }
+
+                    if (event.key === 'ArrowRight') {
+                      event.preventDefault()
+                      setChatPercent((current) => Math.min(72, current + 2))
+                    }
+                  }}
+                  className="z-10 w-1.5 shrink-0 cursor-col-resize bg-slate-200 transition hover:bg-violet-400 focus:bg-violet-500 focus:outline-none"
+                />
+
+                <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
                   <PdfViewer
+                    ref={pdfViewerRef}
                     targetPage={pdfPage}
                     highlightText={pdfHighlightText}
                     currentUser={currentSchoolId}
@@ -237,6 +290,10 @@ function App() {
             open={regulationBrowserOpen && isStudentView}
             currentSchoolId={currentSchoolId}
             currentSchoolName={currentSchoolName}
+            currentPdfFile={studentPdfFile || '/guide.pdf'}
+            currentPdfTitle={
+              studentPdfTitle || '건국대학교 글로컬캠퍼스 학사 요람'
+            }
             onClose={() => setRegulationBrowserOpen(false)}
             onSelectDocument={handleDocumentSelect}
           />

@@ -7,12 +7,63 @@
   --unibot-box-radius: clamp(0.125rem, 1.35vw, 1rem);
 }
 
-body {
-  margin: 0;
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  html {
+    font-family: 'Pretendard Variable', Pretendard, ui-sans-serif, system-ui,
+      sans-serif;
+  }
+
+  body {
+    margin: 0;
+    font-family: 'Pretendard Variable', Pretendard, ui-sans-serif, system-ui,
+      sans-serif;
+  }
 }
 
 @layer components {
   .unibot-box {
     border-radius: var(--unibot-box-radius);
   }
+}
+
+.react-pdf__Page__textContent,
+.react-pdf__Page .textLayer {
+  mix-blend-mode: multiply;
+}
+
+.pdf-evidence-highlight {
+  background-color: rgb(255, 230, 0);
+  border-radius: 2px;
+  color: inherit;
+  padding: 0 1px;
+}
+
+.theme-color-input {
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+}
+
+.theme-color-input::-webkit-color-swatch-wrapper {
+  padding: 0;
+  border: none;
+  border-radius: 9999px;
+}
+
+.theme-color-input::-webkit-color-swatch {
+  border: none;
+  border-radius: 9999px;
+}
+
+.theme-color-input::-moz-color-swatch {
+  border: none;
+  border-radius: 9999px;
 }
