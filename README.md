@@ -15,35 +15,13 @@ RAG(Retrieval-Augmented Generation)와 Self-RAG 기법을 활용하여, 학칙·
 Uni-Bot은 학교 문서에서 근거를 찾아 답하고, 그 근거를 원문 위에 직접 보여줍니다.
 
 ## 시연
-[![시연 영상](https://img.youtube.com/vi/영상ID/maxresdefault.jpg)](https://www.youtube.com/watch?v=5LZM0tI3TYU)
+- 시연 영상: [YouTube](https://www.youtube.com/watch?v=5LZM0tI3TYU)
+- 체험하기: http://3.35.167.130/ (2026년 11월까지 운영)
 
-## 시스템 구성 및 아키텍처
+[![시연 영상](https://img.youtube.com/vi/5LZM0tI3TYU/maxresdefault.jpg)](https://www.youtube.com/watch?v=5LZM0tI3TYU)
 
-```
-[오프라인: 문서 전처리·적재]
-
- 학사 안내 PDF ──▶ Upstage Document Parse API ──▶ 제목 경로 기반 청킹 ──▶ 청크 JSON
- (data/raw)        (50쪽 단위 분할 호출, 응답 캐시)   (pdf_service.py)            │
-                                                     · 표지/목차/반복 머리말 제거  │
-                                                     · 제목 + 본문 병합            ▼
-                                                     · 표 → "헤더: 값" 변환   ko-sroberta 임베딩
-                                                                              ──▶ ChromaDB (코사인)
-
-[온라인: 질의응답]
-
- React (학생 듀얼 뷰 / 관리자)
-   │  ChatScreen ── 질문 ─────────▶ FastAPI  POST /api/chat
-   │                                 ① 동의어 질의 확장 (synonyms.py)
-   │                                 ② 하이브리드 검색: semantic 50% + keyword 50% (rag_service.py)
-   │                                 ③ 최소 점수 필터, 청크 ID 중복 제거 → Top-3 근거
-   │                                 ④ OpenAI 답변 생성 (answer_service.py)
-   │                                 ⑤ Self-RAG 검증: 근거 점수 < 0.7 이면 답변 차단
-   │                                 ⑥ 출처를 (문서, 페이지) 단위로 묶어 반환
-   │                                 ⑦ 채팅 이력 저장 (SQLite / PostgreSQL)
-   │  ◀── 답변 + 출처 칩 ─────────────┘
-   ▼
- PdfViewer ── 출처 칩 클릭 시 원문 PDF 해당 페이지로 이동, 근거 구간 하이라이트
-```
+## 시스템 구성도
+![시스템 구성도](docs/images/arch_system.png)
 
 | 구성 요소 | 역할 | 주요 파일 |
 | --- | --- | --- |
@@ -54,6 +32,10 @@ Uni-Bot은 학교 문서에서 근거를 찾아 답하고, 그 근거를 원문 
 | 답변 생성 / Self-RAG | 근거 기반 답변 생성, 답변–근거 일치 검증 및 차단 | `app/services/answer_service.py` |
 | 데이터 저장 | 벡터 DB(ChromaDB), 채팅 이력·문서 정보(SQLAlchemy ORM) | `chroma_db/`, `app/db.py`, `app/models.py` |
 | 평가 스크립트 | 체크리스트 Top-N 검색 평가, 청킹 비교, Self-RAG 거부율 평가 | `backend/scripts/`, `backend/evaluation/`, `backend/experiments/` |
+
+## 문서 전처리 흐름
+![문서 전처리 흐름도](docs/images/preprocess_flow.png)
+
 
 ### 프로젝트 구조
 
@@ -89,56 +71,29 @@ unibot/
 ### 검색 정확도
 
 20개 표준 질의 × 표현 3종(완전문장/구어체/키워드형) = 60건
-판정: 정답 키워드를 모두 포함한 청크가 Top-3 안에 있으면 PASS (`scripts/check_questions_auto.py`)
+- 사용 질문: `backend/evaluation/questions_checklist.csv` (20개 표준 질의 × 표현 3종(완전문장/구어체/키워드형) = 60건)
+- 판정 결과: `backend/evaluation/auto_checklist_chunkid_result.csv`
+- 판정 기준: 정답 키워드를 모두 포함한 청크가 Top-3 안에 있으면 PASS, Top-4~10이면 PARTIAL, 없으면 FAIL
 
-| 단계 | PASS |
+
+| 판정 |  비율 |
 | --- | --- |
-| 개선 전 청킹 | 32/60 (53.3%) |
-|   • 제목 경로 청킹 (`pdf_service.py`) | 38/60 (63.3%) |
-|   • 중복 제거 기준을 청크 ID로 변경 | **43/60 (71.7%)** |
-- 같은 60개 질의로 설계·평가하여 과적합 가능성이 있으며, 새 질의에 대한 일반화는 추가 검증 예정
+| **PASS** | **43 (71.7%)** |
+| PARTIAL | 7 (11.7%) |
+| FAIL | 10 (16.7%) |
 
-### 표 검색
 
-표 관련 질의 10개 + 비표 질의 5개
-
-| 지표 | 결과 |
-| --- | --- |
-| Top-1 적중률 | 6/10 (60%) |
-| Top-3 포함률 | 7/10 (70%) |
-| 오탐 (비표 질의에 표가 1위) | 0/5 |
-
-### 다중 학교 필터링
-
-`school_id` 필터 적용 시 타 학교 데이터 섞임 0건 (더미 학교 3개로 검증)
-
-### Self-RAG 답변 거부율
-
-- 스크립트: `backend/scripts/evaluate_refusal_rate.py`
-- 테스트셋: `backend/evaluation/refusal_testset.csv`
-- 결과: 〔측정값〕
-### 하이브리드 검색 비율
-
-10개 학사 질의로 semantic : keyword 비율별 Top-1 정확도를 비교해 50:50을 채택했습니다.
-
-| semantic : keyword | Top-1 정확도 |
-|---|---|
-| 100 : 0 | 5/10 (50%) |
-| 85 : 15 | 6/10 (60%) |
-| 70 : 30 | 6/10 (60%) |
-| **50 : 50** | **7/10 (70%)** |
-
-학칙은 학점·기한·자격요건처럼 수치와 용어가 정확히 일치해야 하는 문서라 keyword 비중을 높일수록 정확도가 올랐고, 표현이 다른 질문에 대응하기 위해 semantic도 50%를 유지했습니다.
 
 
 ## 개발 환경
 
 | 항목 | 내용 |
 | --- | --- |
-| OS | Ubuntu 24.04 LTS, Windows |
-| 런타임 | Python 3.13, Node.js 24 |
+| OS | Windows 11, macOS |
+| 런타임 | Python 3.11, Node.js 24 |
 | 데이터베이스 | ChromaDB 1.5 (로컬 영속 저장), SQLite (기본) / PostgreSQL (`DATABASE_URL`로 전환) |
 | 외부 API | OpenAI API (답변 생성·Self-RAG 검증, 기본 `gpt-4o-mini`), Upstage Document Parse API (PDF 파싱) |
+| 배포 | AWS EC2 |
 | 실행 포트 | 백엔드 `localhost:8000`, 프론트엔드 `localhost:5173` |
 
 ## 개발 언어
@@ -147,45 +102,6 @@ unibot/
 | --- | --- |
 | 백엔드 / AI | Python |
 | 프론트엔드 | JavaScript (JSX), HTML, CSS |
-
-## 개발 도구 / 라이브러리
-
-### 개발 도구
-
-| 도구 | 용도 |
-| --- | --- |
-| Visual Studio Code | 코드 편집 |
-| GitLab | 버전 관리, 협업 |
-| venv, pip | Python 가상환경·패키지 관리 |
-| npm, Vite | 프론트엔드 패키지 관리, 개발 서버·빌드 |
-| ESLint | 프론트엔드 코드 검사 |
-| Swagger UI (`/docs`) | API 테스트 |
-
-### 백엔드 라이브러리
-
-| 라이브러리 | 용도 |
-| --- | --- |
-| FastAPI, Uvicorn | REST API 서버 |
-| Pydantic | 요청/응답 스키마 검증 |
-| python-multipart | PDF 파일 업로드 처리 |
-| sentence-transformers (`jhgan/ko-sroberta-multitask`) | 한국어 문장 임베딩 |
-| ChromaDB | 벡터 DB (코사인 거리 검색) |
-| OpenAI Python SDK | 답변 생성, Self-RAG 검증 |
-| requests | Upstage Document Parse API 호출 |
-| pypdf | PDF 페이지 분할, API 없는 텍스트 추출 |
-| BeautifulSoup4 | Upstage 결과의 HTML 표 파싱 |
-| SQLAlchemy, psycopg2 | ORM, PostgreSQL 연결 |
-| python-dotenv | 환경 변수 로드 |
-
-### 프론트엔드 라이브러리
-
-| 라이브러리 | 용도 |
-| --- | --- |
-| React 19 | UI |
-| react-pdf (PDF.js) | 원문 PDF 렌더링, 근거 구간 하이라이트 |
-| axios | 백엔드 API 호출 |
-| Tailwind CSS, PostCSS, Autoprefixer | 스타일링 |
-| lucide-react, react-icons | 아이콘 |
 
 ## 백엔드 실행 방법
 
@@ -237,10 +153,6 @@ python -c "from app.services.rag_service import ingest_json; ingest_json('data/p
 - Upstage 파싱 결과는 캐시되어, 다시 실행해도 API를 재호출하지 않습니다. 새로 파싱하려면 `--force`를 붙이세요.
 - `reset=True`는 기존 데이터를 지우고 새로 넣습니다. 다른 학교 데이터를 **추가**할 때는 `reset=False`로 실행하세요.
 
-### 임베딩 모델 Warm-up 성능 비교
-
-- Warm-up 적용 전: 첫 `/api/chat` 응답 시간 ≈ 15초 (모델 로드가 첫 요청 중에 발생)
-- Warm-up 적용 후: 첫 `/api/chat` 응답 시간 ≈ 5초 (서버 시작 시 모델 로드, 첫 요청은 바로 검색/답변)
 
 ## 프론트엔드 실행 방법
 
