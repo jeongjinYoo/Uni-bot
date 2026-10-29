@@ -220,6 +220,56 @@ def source_from_result(result: dict) -> dict:
     }
 
 
+def merge_sources_by_page(sources: list[dict]) -> list[dict]:
+    """
+    같은 문서·같은 페이지 출처를 하나로 묶습니다.
+
+    순서는 처음 등장한 순서(검색 순위)를 유지하고,
+    묶인 출처들의 evidence는 빈 줄로 이어 붙여
+    PdfViewer가 구간마다 하이라이트할 수 있게 합니다.
+    (evidence는 clean_text로 줄바꿈이 없으므로 빈 줄을 구분자로 사용)
+    """
+    merged: dict[tuple[str, int], dict] = {}
+
+    for source in sources:
+        key = (
+            source["doc_id"],
+            source["page"],
+        )
+
+        if key not in merged:
+            merged[key] = {
+                **source,
+                "evidence_list": [
+                    source.get("evidence")
+                ],
+            }
+            continue
+
+        evidence_list = merged[key]["evidence_list"]
+
+        if (
+            source.get("evidence")
+            and source.get("evidence") not in evidence_list
+        ):
+            evidence_list.append(
+                source["evidence"]
+            )
+
+    results: list[dict] = []
+
+    for source in merged.values():
+        evidence_list = source.pop("evidence_list")
+        source["evidence"] = "\n\n".join(
+            evidence
+            for evidence in evidence_list
+            if evidence
+        )
+        results.append(source)
+
+    return results
+
+
 def save_chat_log(
     *,
     user_id: str,
@@ -633,10 +683,13 @@ def chat(request: ChatRequest):
         for index in valid_used_indexes
     ]
 
-    sources = [
-        source_from_result(result)
-        for result in used_results
-    ]
+    # 출처 칩만 (doc_id, page)로 묶음 (LLM 근거 청크는 그대로)
+    sources = merge_sources_by_page(
+        [
+            source_from_result(result)
+            for result in used_results
+        ]
+    )
 
     answer = str(
         generated.get("answer")
