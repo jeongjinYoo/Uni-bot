@@ -261,6 +261,10 @@ function SourceEvidencePanel({ sources, onSourceClick }) {
   )
 }
 
+function makeId() {
+  return globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+}
+
 function ChatScreen({
   onSourceClick,
   currentSchoolId = null,
@@ -271,7 +275,7 @@ function ChatScreen({
 
   const [messages, setMessages] = useState([
     {
-      id: crypto.randomUUID(),
+      id: makeId(),
       text: GREETING_TEXT,
       sender: 'bot',
       sources: [],
@@ -302,7 +306,7 @@ function ChatScreen({
     setMessages((previousMessages) => [
       ...previousMessages,
       {
-        id: crypto.randomUUID(),
+        id: makeId(),
         text: trimmed,
         sender: 'user',
         sources: [],
@@ -325,10 +329,14 @@ function ChatScreen({
           )
         : []
 
+      if (sources.length > 0) {
+        onSourceClick?.(sources[0])
+      }
+
       setMessages((previousMessages) => [
         ...previousMessages,
         {
-          id: crypto.randomUUID(),
+          id: makeId(),
           text: answer,
           sender: 'bot',
           sources,
@@ -340,7 +348,7 @@ function ChatScreen({
       setMessages((previousMessages) => [
         ...previousMessages,
         {
-          id: crypto.randomUUID(),
+          id: makeId(),
           text:
             error?.message ||
             '죄송합니다. 답변을 가져오는 중 오류가 발생했습니다.',

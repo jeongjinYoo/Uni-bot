@@ -242,6 +242,18 @@ const PdfViewer = forwardRef(function PdfViewer(
     span.classList.add('pdf-evidence-highlight')
   }
 
+  // scrollIntoView는 overflow:hidden인 텍스트 레이어까지 스크롤시켜 하이라이트가 위로 밀리므로,
+  // 실제 스크롤 컨테이너만 직접 스크롤한다.
+  const scrollToSpan = (span) => {
+    const container = containerRef.current
+    if (!span || !container) return
+    const spanRect = span.getBoundingClientRect()
+    const boxRect = container.getBoundingClientRect()
+    const delta =
+      spanRect.top - boxRect.top - (container.clientHeight - spanRect.height) / 2
+    container.scrollBy({ top: delta, behavior: 'smooth' })
+  }
+
   const highlightNormalizedNeedle = (needle) => {
     const pageElement = pageRef.current
 
@@ -310,10 +322,7 @@ const PdfViewer = forwardRef(function PdfViewer(
       from = matchEnd
     }
 
-    firstHighlightedSpan?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'center',
-    })
+    scrollToSpan(firstHighlightedSpan)
   }
 
   const highlightEvidence = () => {
@@ -395,10 +404,7 @@ const PdfViewer = forwardRef(function PdfViewer(
       }
     })
 
-    firstHighlightedSpan?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'center',
-    })
+    scrollToSpan(firstHighlightedSpan)
   }
 
   const handleTextLayerReady = () => {

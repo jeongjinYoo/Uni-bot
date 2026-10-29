@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const API_BASE_URL = 'http://localhost:8000'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
 const EMPTY_MESSAGE =
   '등록된 규정 문서가 없습니다. 관리자 대시보드에서 PDF를 업로드해 주세요.'
 
