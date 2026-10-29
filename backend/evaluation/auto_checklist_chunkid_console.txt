@@ -1,0 +1,102 @@
+체크리스트: /home/ujj/project/Hanium/unibot/backend/evaluation/questions_checklist.csv
+학교 필터: konkuk
+질문 수: 60
+판정: 정답 키워드를 모두 가진 청크가 Top-3=PASS / Top-10=PARTIAL / 밖=FAIL / 0건=EMPTY
+[1/60] Q01/A → PARTIAL (rank=4)
+[2/60] Q01/B → PASS (rank=1)
+[3/60] Q01/C → PASS (rank=2)
+[4/60] Q02/A → PASS (rank=1)
+[5/60] Q02/B → PASS (rank=1)
+[6/60] Q02/C → PASS (rank=1)
+[7/60] Q03/A → PASS (rank=1)
+[8/60] Q03/B → PASS (rank=1)
+[9/60] Q03/C → PASS (rank=1)
+[10/60] Q04/A → PASS (rank=1)
+[11/60] Q04/B → PASS (rank=2)
+[12/60] Q04/C → PASS (rank=1)
+[13/60] Q05/A → PASS (rank=1)
+[14/60] Q05/B → PASS (rank=1)
+[15/60] Q05/C → FAIL (rank=-)
+[16/60] Q06/A → FAIL (rank=-)
+[17/60] Q06/B → PARTIAL (rank=9)
+[18/60] Q06/C → PASS (rank=1)
+[19/60] Q07/A → PASS (rank=1)
+[20/60] Q07/B → PASS (rank=1)
+[21/60] Q07/C → PASS (rank=2)
+[22/60] Q08/A → PASS (rank=3)
+[23/60] Q08/B → PARTIAL (rank=4)
+[24/60] Q08/C → PASS (rank=2)
+[25/60] Q09/A → PASS (rank=1)
+[26/60] Q09/B → PASS (rank=1)
+[27/60] Q09/C → PASS (rank=1)
+[28/60] Q10/A → FAIL (rank=-)
+[29/60] Q10/B → FAIL (rank=-)
+[30/60] Q10/C → FAIL (rank=-)
+[31/60] Q11/A → PASS (rank=1)
+[32/60] Q11/B → PASS (rank=1)
+[33/60] Q11/C → PASS (rank=2)
+[34/60] Q12/A → PASS (rank=1)
+[35/60] Q12/B → PASS (rank=3)
+[36/60] Q12/C → PASS (rank=1)
+[37/60] Q13/A → PASS (rank=3)
+[38/60] Q13/B → PASS (rank=3)
+[39/60] Q13/C → PASS (rank=3)
+[40/60] Q14/A → PARTIAL (rank=7)
+[41/60] Q14/B → FAIL (rank=-)
+[42/60] Q14/C → FAIL (rank=-)
+[43/60] Q15/A → PARTIAL (rank=4)
+[44/60] Q15/B → PARTIAL (rank=4)
+[45/60] Q15/C → PARTIAL (rank=4)
+[46/60] Q16/A → PASS (rank=2)
+[47/60] Q16/B → PASS (rank=2)
+[48/60] Q16/C → PASS (rank=1)
+[49/60] Q17/A → PASS (rank=2)
+[50/60] Q17/B → PASS (rank=1)
+[51/60] Q17/C → PASS (rank=1)
+[52/60] Q18/A → PASS (rank=1)
+[53/60] Q18/B → PASS (rank=1)
+[54/60] Q18/C → PASS (rank=1)
+[55/60] Q19/A → PASS (rank=1)
+[56/60] Q19/B → PASS (rank=1)
+[57/60] Q19/C → PASS (rank=1)
+[58/60] Q20/A → FAIL (rank=-)
+[59/60] Q20/B → FAIL (rank=-)
+[60/60] Q20/C → FAIL (rank=-)
+
+| 판정 | 건수 | 비율 |
+| --- | --- | --- |
+| PASS | 43 | 71.7% |
+| PARTIAL | 7 | 11.7% |
+| FAIL | 10 | 16.7% |
+| EMPTY | 0 | 0.0% |
+
+변형별 PASS:
+  A (완전문장): 14/20 (70.0%)
+  B (구어체): 14/20 (70.0%)
+  C (키워드형): 15/20 (75.0%)
+
+질문별 판정 (A / B / C):
+  Q01: PARTIAL / PASS / PASS
+  Q02: PASS / PASS / PASS
+  Q03: PASS / PASS / PASS
+  Q04: PASS / PASS / PASS
+  Q05: PASS / PASS / FAIL
+  Q06: FAIL / PARTIAL / PASS
+  Q07: PASS / PASS / PASS
+  Q08: PASS / PARTIAL / PASS
+  Q09: PASS / PASS / PASS
+  Q10: FAIL / FAIL / FAIL
+  Q11: PASS / PASS / PASS
+  Q12: PASS / PASS / PASS
+  Q13: PASS / PASS / PASS
+  Q14: PARTIAL / FAIL / FAIL
+  Q15: PARTIAL / PARTIAL / PARTIAL
+  Q16: PASS / PASS / PASS
+  Q17: PASS / PASS / PASS
+  Q18: PASS / PASS / PASS
+  Q19: PASS / PASS / PASS
+  Q20: FAIL / FAIL / FAIL
+
+판정 결과: /home/ujj/project/Hanium/unibot/backend/evaluation/auto_checklist_chunkid_result.csv
+Top-10 검수용: /home/ujj/project/Hanium/unibot/backend/evaluation/auto_checklist_chunkid_review.csv
+터미널 출력: /home/ujj/project/Hanium/unibot/backend/evaluation/auto_checklist_chunkid_console.txt

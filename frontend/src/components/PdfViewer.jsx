@@ -54,6 +54,38 @@ function normalizeText(value = '') {
     .trim()
 }
 
+
+function findEvidenceMatch(fullPageText, normalizedEvidence) {
+  const exactStart = fullPageText.indexOf(normalizedEvidence)
+
+  if (exactStart !== -1) {
+    return {
+      start: exactStart,
+      end: exactStart + normalizedEvidence.length,
+    }
+  }
+
+  // 전체가 없으면 evidence 안에서 페이지에 있는 가장 긴 구간(최대 120자)을 찾음
+  const maximumCandidateLength = Math.min(normalizedEvidence.length, 120)
+
+  for (let candidateLength = maximumCandidateLength; candidateLength >= 8; candidateLength -= 1) {
+    for (
+      let evidenceStart = 0;
+      evidenceStart + candidateLength <= normalizedEvidence.length;
+      evidenceStart += 1
+    ) {
+      const candidate = normalizedEvidence.slice(evidenceStart, evidenceStart + candidateLength)
+      const foundIndex = fullPageText.indexOf(candidate)
+
+      if (foundIndex !== -1) {
+        return { start: foundIndex, end: foundIndex + candidateLength }
+      }
+    }
+  }
+
+  return null
+}
+
 function itemString(item) {
   return item && typeof item.str === 'string' ? item.str : ''
 }
@@ -69,6 +101,7 @@ const PdfViewer = forwardRef(function PdfViewer(
   },
   ref,
 ) {
+  
   const selectedSchool = useMemo(() => {
     if (activePdfFile) {
       const matchedSchool = SCHOOL_OPTIONS.find(
@@ -302,9 +335,13 @@ const PdfViewer = forwardRef(function PdfViewer(
 
     clearHighlights()
 
-    const normalizedEvidence = normalizeText(highlightText)
+    // 같은 페이지 출처가 묶이면 evidence가 빈 줄로 이어져 오므로 구간마다 찾음
+    const normalizedEvidences = String(highlightText)
+      .split(/\n\s*\n/)
+      .map(normalizeText)
+      .filter(Boolean)
 
-    if (!normalizedEvidence) {
+    if (normalizedEvidences.length === 0) {
       return
     }
 
@@ -328,59 +365,24 @@ const PdfViewer = forwardRef(function PdfViewer(
       return
     }
 
-    let matchStart = fullPageText.indexOf(normalizedEvidence)
-    let matchLength = normalizedEvidence.length
-
-    if (matchStart === -1) {
-      const maximumCandidateLength = Math.min(
-        normalizedEvidence.length,
-        120,
+    const matches = normalizedEvidences
+      .map((normalizedEvidence) =>
+        findEvidenceMatch(fullPageText, normalizedEvidence),
       )
+      .filter(Boolean)
 
-      for (
-        let candidateLength = maximumCandidateLength;
-        candidateLength >= 8;
-        candidateLength -= 1
-      ) {
-        let found = false
-
-        for (
-          let evidenceStart = 0;
-          evidenceStart + candidateLength <= normalizedEvidence.length;
-          evidenceStart += 1
-        ) {
-          const candidate = normalizedEvidence.slice(
-            evidenceStart,
-            evidenceStart + candidateLength,
-          )
-
-          const foundIndex = fullPageText.indexOf(candidate)
-
-          if (foundIndex !== -1) {
-            matchStart = foundIndex
-            matchLength = candidateLength
-            found = true
-            break
-          }
-        }
-
-        if (found) {
-          break
-        }
-      }
-    }
-
-    if (matchStart === -1) {
+    if (matches.length === 0) {
       return
     }
 
-    const matchEnd = matchStart + matchLength
     let firstHighlightedSpan = null
 
     spanRanges.forEach(({ span, start, end }) => {
-      const overlaps =
-        end > matchStart &&
-        start < matchEnd
+      const overlaps = matches.some(
+        (match) =>
+          end > match.start &&
+          start < match.end,
+      )
 
       if (!overlaps) {
         return
